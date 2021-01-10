@@ -20,6 +20,7 @@ Leverages websockify.py by Joel Martin
 
 import copy
 import socket
+import select
 import sys
 
 from oslo_log import log as logging
