@@ -317,8 +317,9 @@ class NovaProxyRequestHandlerBase(object):
         iw = [self.request, tsock]
         ow = []
         self.request.setblocking(0)
+        http_out = []
+        tsock_out = []
         while 1:
-
             (ins, ows, exs) = select.select(iw, ow, iw)
             if exs:
                 LOG.info("ERROR : " + str(self.request.getpeername()[1]))
@@ -326,29 +327,34 @@ class NovaProxyRequestHandlerBase(object):
             if ins:
                 for i in ins:
                     if i is tsock:
-                        out = self.request
-                        # LOG.info("tsock in %s", "".join(str(x) for x in i.getsockname()))
-                        # LOG.info("http out %s", "".join(str(x) for x in out.getsockname()))
+                        try:
+                            data = i.recv(8192)
+                        except BlockingIOError:
+                            # LOG.info("SKIPPED : " + str(os.getpid()))
+                            continue
+                        http_out.append(data)
                     elif i is self.request:
-                        out = tsock
-                        # LOG.info("READING : " + str(self.connection.getpeername()[1]))
-                        # LOG.info("http in %s", "".join(str(x) for x in i.getsockname()))
-                        # LOG.info("tsock out %s", "".join(str(x) for x in out.getsockname()))
-                    else:
-                        # LOG.info("CONTINUED : " + str(self.request.getpeername()[1]))
-                        continue
-                    try:
-                        data = i.recv(8192)
-                    except BlockingIOError:
-                        # LOG.info("SKIPPED : " + str(os.getpid()))
-                        continue
-                    # LOG.info("RECEIVED FROM : " + str(self.request.getpeername()[1]) + " PID : " + str(os.getpid()))
-                    if data:
-                        out.send(data)
-                        # LOG.info("SENT : ")
-                    else:
-                        LOG.info("RETURNED : " + str(self.connection.getpeername()[1]))
-                        return
+                        try:
+                            data = i.recv(8192)
+                        except BlockingIOError:
+                            # LOG.info("SKIPPED : " + str(os.getpid()))
+                            continue
+                        tsock_out.append(data)
+            if ows:
+                for i in ows:
+                    if i is tsock:
+                        try:
+                            i.send(tsock_out[0])
+                        except BlockingIOError:
+                            continue
+                        tsock_out.pop(0)
+                    elif i is self.request:
+                        try:
+                            i.send(http_out[0])
+                        except BlockingIOError:
+                            continue
+                        http_out.pop(0)
+
 
 
 class NovaProxyRequestHandler(NovaProxyRequestHandlerBase,
