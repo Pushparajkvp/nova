@@ -23,6 +23,7 @@ import socket
 import select
 import sys
 import errno
+import os
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
@@ -330,14 +331,14 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             data = i.recv(8192)
                         except BlockingIOError:
-                            # LOG.info("SKIPPED : " + str(os.getpid()))
+                            LOG.info("SKIPPED tsock : " + str(os.getpid()))
                             continue
                         http_out.append(data)
                     elif i is self.request:
                         try:
                             data = i.recv(8192)
                         except BlockingIOError:
-                            # LOG.info("SKIPPED : " + str(os.getpid()))
+                            LOG.info("SKIPPED http: " + str(os.getpid()))
                             continue
                         tsock_out.append(data)
             if ows:
@@ -345,13 +346,17 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock and len(tsock_out) > 0:
                         try:
                             i.send(tsock_out[0])
+                            LOG.info("Sent tsock : " + str(os.getpid()))
                         except BlockingIOError:
+                            LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
                         tsock_out.pop(0)
                     elif i is self.request and len(http_out) > 0:
                         try:
                             i.send(http_out[0])
+                            LOG.info("Sent http : " + str(os.getpid()))
                         except BlockingIOError:
+                            LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
                         http_out.pop(0)
 
