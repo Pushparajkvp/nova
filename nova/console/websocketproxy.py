@@ -22,6 +22,7 @@ import copy
 import socket
 import select
 import sys
+import errno
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
@@ -306,7 +307,7 @@ class NovaProxyRequestHandlerBase(object):
                 self._recv_send(target_sock)
             except IOError as e:
                 # server closed?
-                if e.errno != e.errno.EPIPE:
+                if e.errno != errno.EPIPE:
                     raise
         finally:
             target_sock.close()
