@@ -306,7 +306,7 @@ class NovaProxyRequestHandlerBase(object):
                 self._recv_send(target_sock)
             except IOError as e:
                 # server closed?
-                if e.errno != errno.EPIPE:
+                if e.errno != e.errno.EPIPE:
                     raise
         finally:
             target_sock.close()
