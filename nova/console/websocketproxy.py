@@ -342,13 +342,13 @@ class NovaProxyRequestHandlerBase(object):
                         tsock_out.append(data)
             if ows:
                 for i in ows:
-                    if i is tsock:
+                    if i is tsock and len(tsock_out) > 0:
                         try:
                             i.send(tsock_out[0])
                         except BlockingIOError:
                             continue
                         tsock_out.pop(0)
-                    elif i is self.request:
+                    elif i is self.request and len(http_out) > 0:
                         try:
                             i.send(http_out[0])
                         except BlockingIOError:
