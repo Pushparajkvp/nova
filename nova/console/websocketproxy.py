@@ -396,8 +396,8 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             while tsock_out:
                                 i.send(tsock_out[0])
+                                LOG.info("Sent tsock : " + str(tsock_out[0]))
                                 tsock_out.pop(0)
-                            LOG.info("Sent tsock : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
@@ -406,7 +406,7 @@ class NovaProxyRequestHandlerBase(object):
                             while http_out:
                                 i.send(http_out[0])
                                 http_out.pop(0)
-                            LOG.info("Sent http : " + str(os.getpid()))
+                                LOG.info("Sent http : " + str(tsock_out[0]))
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
