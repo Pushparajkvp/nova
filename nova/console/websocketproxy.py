@@ -281,37 +281,52 @@ class NovaProxyRequestHandlerBase(object):
             raise
     
     def do_CONNECT(self):
+        # Reopen the eventlet hub to make sure we don't share an epoll
+        # fd with parent and/or siblings, which would be bad
+        from eventlet import hubs
+        hubs.use_hub()
+
+        # Getting token from path
         token = self.path
         i = token.find(':')
         if i >= 0:
             token = token[:i]
+        
         ctxt = context.get_admin_context()
         connect_info = self._get_connect_info(ctxt, token)
+
         if not connect_info:
             raise Exception("Invalid Token")
 
         host = connect_info.host
         port = connect_info.port
 
-        # Connect to the target
-        target_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            try:
-                target_sock.connect((host, port))
-            except socket.error:
-                self.send_error(404, "Failed to connect to target")
-                raise
+        tsock = self.socket(host, port, connect=True)
 
-            self.send_response(200)
-            self.end_headers()
+        if self.server.security_proxy is not None:
+            tenant_sock = TenantSock(self)
             try:
-                self._recv_send(target_sock)
-            except IOError as e:
-                # server closed?
-                if e.errno != errno.EPIPE:
-                    raise
+                tsock = self.server.security_proxy.connect(tenant_sock, tsock)
+            except exception.SecurityProxyNegotiationFailed:
+                LOG.exception("Unable to perform security proxying, shutting "
+                              "down connection")
+                tenant_sock.close()
+                tsock.shutdown(socket.SHUT_RDWR)
+                tsock.close()
+                raise
+            tenant_sock.finish_up()
+        
+        self.send_response(200)
+        self.end_headers()
+
+        try:
+            self._recv_send(tsock)
+        except IOError as e:
+            # server closed?
+            if e.errno != errno.EPIPE:
+                raise
         finally:
-            target_sock.close()
+            tsock.close()
             self.request.close()
 
     def _recv_send(self, tsock):
