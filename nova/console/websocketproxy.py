@@ -370,7 +370,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM TSOCK: " + str(data))
                             if data:
-                                http_out.extend(data[:])
+                                http_out.append(data[:])
                             else:
                                 return
                         except BlockingIOError:
@@ -381,7 +381,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM HTTP: " + str(data))
                             if data:
-                                tsock_out.extend(data[:])
+                                tsock_out.append(data[:])
                             else:
                                 return
                         except BlockingIOError:
@@ -391,16 +391,18 @@ class NovaProxyRequestHandlerBase(object):
                 for i in ows:
                     if i is tsock and len(tsock_out) > 0:
                         try:
-                            i.send(tsock_out[0])
-                            tsock_out.pop(0)
+                            while tsock_out:
+                                i.send(tsock_out[0])
+                                tsock_out.pop(0)
                             LOG.info("Sent tsock : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
                     elif i is self.request and len(http_out) > 0:
                         try:
-                            i.send(http_out[0])
-                            http_out.pop(0)
+                            while http_out:
+                                i.send(http_out[0])
+                                http_out.pop(0)
                             LOG.info("Sent http : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
