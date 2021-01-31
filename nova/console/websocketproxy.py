@@ -301,8 +301,6 @@ class NovaProxyRequestHandlerBase(object):
         host = connect_info.host
         port = connect_info.port
 
-        tsock = self.socket(host, port, connect=True)
-
         '''
         if self.server.security_proxy is not None:
             LOG.info("SECURITY")
@@ -337,19 +335,28 @@ class NovaProxyRequestHandlerBase(object):
                         tsock.recv(token_loc + len(end_token))
                         break
         '''
-        self.send_response(200)
-        self.end_headers()
 
+        # Connect to the target
+        target_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self._recv_send(tsock)
-        except IOError as e:
-            # server closed?
-            if e.errno != errno.EPIPE:
+            try:
+                target_sock.connect((host, port))
+            except socket.error:
+                self.send_error(404, "Failed to connect to target")
                 raise
+
+            self.send_response(200)
+            self.end_headers()
+            try:
+                self._recv_send(target_sock)
+            except IOError as e:
+                # server closed?
+                if e.errno != errno.EPIPE:
+                    raise
         finally:
-            if tsock:
-                tsock.shutdown(socket.SHUT_RDWR)
-                tsock.close()
+            if target_sock:
+                target_sock.shutdown(socket.SHUT_RDWR)
+                target_sock.close()
 
     def _recv_send(self, tsock):
         self.request.setblocking(0)
