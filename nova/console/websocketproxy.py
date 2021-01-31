@@ -351,15 +351,17 @@ class NovaProxyRequestHandlerBase(object):
                 for i in ows:
                     if i is tsock and len(tsock_out) > 0:
                         try:
-                            i.send(tsock_out[0])
-                            tsock_out.pop(0)
+                            while len(tsock_out > 0):
+                                i.send(tsock_out[0])
+                                tsock_out.pop(0)
                             LOG.info("Sent tsock : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
                     elif i is self.request and len(http_out) > 0:
                         try:
-                            i.send(http_out[0])
+                            while len(http_out > 0):
+                                i.send(http_out[0])
                             http_out.pop(0)
                             LOG.info("Sent http : " + str(os.getpid()))
                         except BlockingIOError:
