@@ -303,6 +303,7 @@ class NovaProxyRequestHandlerBase(object):
 
         tsock = self.socket(host, port, connect=True)
 
+        '''
         if self.server.security_proxy is not None:
             LOG.info("SECURITY")
             tenant_sock = TenantSock(self)
@@ -317,7 +318,7 @@ class NovaProxyRequestHandlerBase(object):
                 raise
             tenant_sock.finish_up()
        
-        '''
+        
         # Handshake as necessary
         if 'internal_access_path' in connect_info:
             LOG.info("INTERNAL")
@@ -346,8 +347,9 @@ class NovaProxyRequestHandlerBase(object):
             if e.errno != errno.EPIPE:
                 raise
         finally:
-            tsock.close()
-            self.request.close()
+            if tsock:
+                tsock.shutdown(socket.SHUT_RDWR)
+                tsock.close()
 
     def _recv_send(self, tsock):
         self.request.setblocking(0)
@@ -371,7 +373,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM TSOCK: " + str(data))
                             if data:
-                                http_out.append(data[:])
+                                http_out.append(data)
                             else:
                                 return
                         except BlockingIOError:
@@ -382,7 +384,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM HTTP: " + str(data))
                             if data:
-                                tsock_out.append(data[:])
+                                tsock_out.append(data)
                             else:
                                 return
                         except BlockingIOError:
@@ -390,7 +392,7 @@ class NovaProxyRequestHandlerBase(object):
                             continue
             if ows:
                 for i in ows:
-                    if i is tsock and len(tsock_out) > 0:
+                    if i is tsock and tsock_out:
                         try:
                             while tsock_out:
                                 i.send(tsock_out[0])
@@ -399,7 +401,7 @@ class NovaProxyRequestHandlerBase(object):
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
-                    elif i is self.request and len(http_out) > 0:
+                    elif i is self.request and http_out:
                         try:
                             while http_out:
                                 i.send(http_out[0])
