@@ -23,7 +23,6 @@ import socket
 import select
 import sys
 import errno
-import os
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
@@ -317,7 +316,7 @@ class NovaProxyRequestHandlerBase(object):
     def _recv_send(self, tsock):
         iw = [self.request, tsock]
         ow = [self.request, tsock]
-        self.request.setblocking(0)
+        #self.request.setblocking(0)
         http_out = []
         tsock_out = []
         while 1:
@@ -330,17 +329,23 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock:
                         try:
                             data = i.recv(8192)
+                            if data:
+                                http_out.append(data)
+                            else:
+                                return
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock : " + str(os.getpid()))
                             continue
-                        http_out.append(data)
                     elif i is self.request:
                         try:
                             data = i.recv(8192)
+                            if data:
+                                tsock_out.append(data)
+                            else:
+                                return
                         except BlockingIOError:
                             LOG.info("SKIPPED http: " + str(os.getpid()))
                             continue
-                        tsock_out.append(data)
             if ows:
                 for i in ows:
                     if i is tsock and len(tsock_out) > 0:
@@ -350,7 +355,6 @@ class NovaProxyRequestHandlerBase(object):
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
-                        tsock_out.pop(0)
                     elif i is self.request and len(http_out) > 0:
                         try:
                             i.send(http_out[0])
@@ -359,7 +363,6 @@ class NovaProxyRequestHandlerBase(object):
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
                         http_out.pop(0)
-
 
 
 class NovaProxyRequestHandler(NovaProxyRequestHandlerBase,
