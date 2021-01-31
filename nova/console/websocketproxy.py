@@ -352,6 +352,7 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock and len(tsock_out) > 0:
                         try:
                             i.send(tsock_out[0])
+                            tsock_out.pop(0)
                             LOG.info("Sent tsock : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
@@ -359,11 +360,11 @@ class NovaProxyRequestHandlerBase(object):
                     elif i is self.request and len(http_out) > 0:
                         try:
                             i.send(http_out[0])
+                            http_out.pop(0)
                             LOG.info("Sent http : " + str(os.getpid()))
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
-                        http_out.pop(0)
 
 
 class NovaProxyRequestHandler(NovaProxyRequestHandlerBase,
