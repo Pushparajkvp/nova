@@ -353,8 +353,8 @@ class NovaProxyRequestHandlerBase(object):
 
     def _recv_send(self, tsock):
         self.request.setblocking(0)
-        http_out = []
-        tsock_out = []
+        http_out = None
+        tsock_out = None
         while 1:
             iw = [self.request, tsock]
             ow = []
@@ -373,7 +373,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM TSOCK: " + str(data))
                             if data:
-                                http_out.append(data)
+                                http_out = data
                             else:
                                 return
                         except BlockingIOError:
@@ -384,7 +384,7 @@ class NovaProxyRequestHandlerBase(object):
                             data = i.recv(8192)
                             LOG.info("GOT FROM HTTP: " + str(data))
                             if data:
-                                tsock_out.append(data)
+                                tsock_out = data
                             else:
                                 return
                         except BlockingIOError:
@@ -395,18 +395,18 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock and tsock_out:
                         try:
                             while tsock_out:
-                                i.send(tsock_out[0])
+                                i.send(tsock_out)
                                 LOG.info("Sent tsock : " + str(tsock_out[0]))
-                                tsock_out.pop(0)
+                                tsock_out = None
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
                             continue
                     elif i is self.request and http_out:
                         try:
                             while http_out:
-                                i.send(http_out[0])
+                                i.send(http_out)
                                 LOG.info("Sent http : " + str(http_out[0]))
-                                http_out.pop(0)
+                                http_out = None
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
