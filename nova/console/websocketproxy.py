@@ -362,8 +362,9 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock:
                         try:
                             data = i.recv(8192)
+                            LOG.info("DATA TYPE : " + str(data))
                             if data:
-                                http_out.append(data)
+                                http_out.append(data[:])
                             else:
                                 return
                         except BlockingIOError:
@@ -373,7 +374,7 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             data = i.recv(8192)
                             if data:
-                                tsock_out.append(data)
+                                tsock_out.append(data[:])
                             else:
                                 return
                         except BlockingIOError:
