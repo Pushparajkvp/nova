@@ -349,7 +349,7 @@ class NovaProxyRequestHandlerBase(object):
     def _recv_send(self, tsock):
         iw = [self.request, tsock]
         ow = [self.request, tsock]
-        #self.request.setblocking(0)
+        self.request.setblocking(0)
         http_out = []
         tsock_out = []
         while 1:
