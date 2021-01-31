@@ -23,6 +23,7 @@ import socket
 import select
 import sys
 import errno
+import os
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
