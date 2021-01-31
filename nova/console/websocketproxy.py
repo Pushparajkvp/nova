@@ -362,7 +362,7 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock:
                         try:
                             data = i.recv(8192)
-                            LOG.info("DATA TYPE : " + str(data))
+                            LOG.info("GOT FRO TSOCK: " + str(data))
                             if data:
                                 http_out.append(data[:])
                             else:
@@ -373,6 +373,7 @@ class NovaProxyRequestHandlerBase(object):
                     elif i is self.request:
                         try:
                             data = i.recv(8192)
+                            LOG.info("GOT FRO HTTP: " + str(data))
                             if data:
                                 tsock_out.append(data[:])
                             else:
