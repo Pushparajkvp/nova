@@ -405,8 +405,8 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             while http_out:
                                 i.send(http_out[0])
-                                http_out.pop(0)
                                 LOG.info("Sent http : " + str(tsock_out[0]))
+                                http_out.pop(0)
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
                             continue
