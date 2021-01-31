@@ -317,6 +317,7 @@ class NovaProxyRequestHandlerBase(object):
                 raise
             tenant_sock.finish_up()
        
+        '''
         # Handshake as necessary
         if 'internal_access_path' in connect_info:
             LOG.info("INTERNAL")
@@ -334,7 +335,7 @@ class NovaProxyRequestHandlerBase(object):
                         # remove the response from recv buffer
                         tsock.recv(token_loc + len(end_token))
                         break
-        
+        '''
         self.send_response(200)
         self.end_headers()
 
