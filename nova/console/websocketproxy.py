@@ -301,6 +301,8 @@ class NovaProxyRequestHandlerBase(object):
         host = connect_info.host
         port = connect_info.port
 
+        tsock = self.socket(host, port, connect=True)
+
         '''
         if self.server.security_proxy is not None:
             LOG.info("SECURITY")
@@ -335,28 +337,19 @@ class NovaProxyRequestHandlerBase(object):
                         tsock.recv(token_loc + len(end_token))
                         break
         '''
+        self.send_response(200)
+        self.end_headers()
 
-        # Connect to the target
-        target_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            try:
-                target_sock.connect((host, port))
-            except socket.error:
-                self.send_error(404, "Failed to connect to target")
+            self._recv_send(tsock)
+        except IOError as e:
+            # server closed?
+            if e.errno != errno.EPIPE:
                 raise
-
-            self.send_response(200)
-            self.end_headers()
-            try:
-                self._recv_send(target_sock)
-            except IOError as e:
-                # server closed?
-                if e.errno != errno.EPIPE:
-                    raise
         finally:
-            if target_sock:
-                target_sock.shutdown(socket.SHUT_RDWR)
-                target_sock.close()
+            if tsock:
+                tsock.shutdown(socket.SHUT_RDWR)
+                tsock.close()
 
     def _recv_send(self, tsock):
         self.request.setblocking(0)
@@ -378,7 +371,7 @@ class NovaProxyRequestHandlerBase(object):
                     if i is tsock:
                         try:
                             data = i.recv(8192)
-                            LOG.info("GOT FROM TSOCK: " + str(len(data)))
+                            LOG.info("GOT FROM TSOCK: " + str(len(data)) + " OS ID : " + str(os.getpid()))
                             if data:
                                 http_out.append(data)
                             else:
@@ -389,7 +382,7 @@ class NovaProxyRequestHandlerBase(object):
                     elif i is self.request:
                         try:
                             data = i.recv(8192)
-                            LOG.info("GOT FROM HTTP: " + str(len(data)))
+                            LOG.info("GOT FROM HTTP: " + str(len(data)) + " OS ID : " + str(os.getpid()))
                             if data:
                                 tsock_out.append(data)
                             else:
@@ -403,7 +396,7 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             while tsock_out:
                                 i.send(tsock_out[0])
-                                LOG.info("Sent tsock : " + str(len(tsock_out[0])))
+                                LOG.info("Sent tsock : " + str(len(tsock_out[0])) + " OS ID : " + str(os.getpid()))
                                 tsock_out.pop(0)
                         except BlockingIOError:
                             LOG.info("SKIPPED tsock send : " + str(os.getpid()))
@@ -412,7 +405,7 @@ class NovaProxyRequestHandlerBase(object):
                         try:
                             while http_out:
                                 i.send(http_out[0])
-                                LOG.info("Sent http : " + str(len(http_out[0])))
+                                LOG.info("Sent http : " + str(len(http_out[0])) + " OS ID : " + str(os.getpid()))
                                 http_out.pop(0)
                         except BlockingIOError:
                             LOG.info("SKIPPED http send : " + str(os.getpid()))
